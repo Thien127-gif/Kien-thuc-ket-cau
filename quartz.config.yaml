@@ -7,7 +7,7 @@ configuration:
   analytics:
     provider: plausible
   locale: en-US
-  baseUrl: Thien127-gif.githb.io/Kien-thuc-ket-cau
+  baseUrl: Thien127-gif.github.io/Kien-thuc-ket-cau
   ignorePatterns:
     - private
     - templates
