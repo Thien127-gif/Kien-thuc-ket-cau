@@ -1,3 +1,218 @@
 @use "./variables.scss" as *;
 
-// put your custom CSS here!
+// ============================================================================
+// Pontech-inspired theme: bold headlines, jade/cyan accent, compact modern
+// nav, dark hero section on the homepage.
+// ============================================================================
+
+// Hero palette — intentionally fixed (does not follow the light/dark toggle)
+// so the homepage hero always reads as a dark, high-contrast banner.
+$hero-bg-start: #0b1220;
+$hero-bg-end: #10263a;
+$hero-fg: #f8fafc;
+$hero-muted: #9fb0c3;
+$hero-accent: #22d3ee;
+$hero-accent-2: #2dd4bf;
+
+// ---------------------------------------------------------------------------
+// 1. Global nav — left sidebar (site title, search, toggles, explorer)
+//    "gọn & hiện đại": tighter spacing, pill controls, accent highlights.
+// ---------------------------------------------------------------------------
+.sidebar.left {
+  gap: 1.4rem;
+}
+
+.page-title {
+  font-family: var(--headerFont);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+
+  a {
+    background: linear-gradient(120deg, var(--secondary), var(--tertiary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+.sidebar.left .flex-component {
+  align-items: center;
+}
+
+.search > .search-button {
+  border-radius: 999px;
+  padding-left: 0.9rem;
+  border-color: var(--lightgray);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--tertiary);
+    box-shadow: 0 0 0 3px var(--highlight);
+  }
+}
+
+.darkmode,
+.readermode {
+  border-radius: 999px;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+    transform: translateY(-1px);
+  }
+}
+
+.explorer {
+  .folder-container div > a,
+  .folder-container div > button span {
+    font-weight: 600;
+  }
+
+  .explorer-content ul li > a {
+    border-radius: 5px;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease;
+
+    &:hover {
+      color: var(--tertiary);
+      background-color: var(--highlight);
+    }
+
+    &.active {
+      font-weight: 600;
+      background-color: var(--highlight);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 2. Typography — bolder, tighter headings site-wide
+// ---------------------------------------------------------------------------
+.page article h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page article h2,
+.page article h3 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Homepage hero (content/index.md is untouched — this is pure CSS on top
+//    of the existing markdown: h1 -> headline, first <p> -> subtitle,
+//    first <ul> -> CTA pills). Always dark, independent of the theme toggle.
+// ---------------------------------------------------------------------------
+body[data-slug="index"] {
+  // The default title/date/reading-time header is redundant next to the
+  // hero headline below, so it's hidden rather than left duplicated.
+  .page-header {
+    display: none;
+  }
+
+  .center > article {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    margin-top: $topSpacing;
+    padding: 3.5rem 3rem;
+    border-radius: 20px;
+    background:
+      radial-gradient(
+        circle at 15% 20%,
+        color-mix(in srgb, #{$hero-accent} 22%, transparent) 0%,
+        transparent 45%
+      ),
+      radial-gradient(
+        circle at 85% 85%,
+        color-mix(in srgb, #{$hero-accent-2} 18%, transparent) 0%,
+        transparent 50%
+      ),
+      linear-gradient(160deg, #{$hero-bg-start} 0%, #{$hero-bg-end} 100%);
+    color: $hero-fg;
+
+    @media all and ($mobile) {
+      padding: 2.5rem 1.5rem;
+      border-radius: 14px;
+      margin-top: 1rem;
+    }
+
+    // Obsidian-flavored-markdown wraps the rendered body in an inner div, so
+    // the headline/subtitle/list are grandchildren of <article>, not children.
+    .markdown-preview-view {
+      // first heading -> big bold headline
+      > h1:first-child {
+        font-size: clamp(2.1rem, 4.5vw, 3.4rem);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: $hero-fg;
+        margin: 0 0 1.25rem 0;
+        max-width: 20ch;
+
+        > a[role="anchor"] {
+          display: none;
+        }
+      }
+
+      // first paragraph right after the headline -> subtitle
+      > h1:first-child + p {
+        font-size: 1.15rem;
+        line-height: 1.6;
+        color: $hero-muted;
+        max-width: 48ch;
+        margin-bottom: 2rem;
+      }
+    }
+
+    // first list -> CTA pill buttons
+    .markdown-preview-view > ul:first-of-type {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.9rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+
+      li {
+        margin: 0;
+      }
+
+      a.internal {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.7rem 1.4rem;
+        border-radius: 999px;
+        background: linear-gradient(120deg, #{$hero-accent-2}, #{$hero-accent});
+        color: #06222b;
+        font-weight: 700;
+        line-height: 1.2;
+
+        &::after {
+          content: "→";
+          transition: transform 0.15s ease;
+        }
+
+        &:hover::after {
+          transform: translateX(3px);
+        }
+      }
+
+      li:not(:first-child) a.internal {
+        background: transparent;
+        border: 1px solid color-mix(in srgb, $hero-fg 30%, transparent);
+        color: $hero-fg;
+      }
+    }
+  }
+}
