@@ -51,12 +51,22 @@
          border-radius:6px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;}
   .beam-calc .maincta:hover{background:#0c4a5e;}
   /* -- BAT DAU: CSS khu vuc ket qua (so do nhip + 2 bieu do + bang tong hop + chu thich) -- */
-  .beam-calc main{padding:22px 32px;}
+  .beam-calc main{padding:22px 32px;min-width:0;}
   .beam-calc .block{background:var(--panel);border:1px solid var(--line);border-radius:8px;
-         padding:16px;margin-bottom:16px;}
+         padding:16px;margin-bottom:16px;min-width:0;}
   .beam-calc .block h3{margin:0 0 10px;font-size:13px;}
   .beam-calc canvas.chartc{max-height:230px;}
-  .beam-calc svg#spanSvg{width:100%;height:auto;display:block;}
+  /* -- BAT DAU: CSS zoom/cuon cho so do nhip + bieu do (them khi nhieu nhip bi tran khung) -- */
+  .beam-calc .zoomrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .beam-calc .zoomrow h3{margin:0;}
+  .beam-calc .zoombtns{display:flex;gap:4px;flex-shrink:0;}
+  .beam-calc .zoombtns button,.beam-calc .zoomreset{border:1px solid var(--line);background:#fff;border-radius:4px;
+                        cursor:pointer;font-family:var(--mono);color:var(--accent);}
+  .beam-calc .zoombtns button{width:26px;height:26px;font-size:14px;line-height:1;}
+  .beam-calc .zoomreset{padding:4px 8px;font-size:11px;white-space:nowrap;}
+  .beam-calc .svgscroll{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:#fbfcfc;}
+  .beam-calc svg#spanSvg{display:block;height:auto;}
+  /* -- KET THUC: CSS zoom/cuon -- */
   .beam-calc table.sumtable{width:100%;border-collapse:collapse;font-size:12.5px;font-family:var(--mono);}
   .beam-calc table.sumtable th{background:#eef3f4;padding:6px 8px;border:1px solid var(--line);text-align:center;}
   .beam-calc table.sumtable td{padding:6px 8px;border:1px solid var(--line);text-align:center;}
@@ -108,20 +118,38 @@
   <!-- KET THUC: toan bo panel nhap lieu ben trai -->
   <!-- BAT DAU: khu vuc ket qua ben phai - dung dung thu tu So do nhip > M(x) > V(x) > bang tong hop > chu thich -->
   <main>
-    <!-- KHOI 1: so do nhip (ve tu dong bang ham drawSpanDiagram trong JS) -->
+    <!-- KHOI 1: so do nhip (ve tu dong bang ham drawSpanDiagram trong JS).
+         Khung tu gian rong theo so nhip (khong bi tran/chong chu nua);
+         cuon ngang de xem het, hoac bam nut phong to/thu nho/vua khung. -->
     <div class="block">
-      <h3>Sơ đồ nhịp tính</h3>
-      <svg id="spanSvg" viewBox="0 0 900 220"></svg>
+      <div class="zoomrow">
+        <h3>Sơ đồ nhịp tính</h3>
+        <div class="zoombtns">
+          <button onclick="zoomSvg(-1)" title="Thu nhỏ">−</button>
+          <button onclick="zoomSvg(1)" title="Phóng to">+</button>
+          <button onclick="zoomSvg(0)" title="Vừa khung">⤢</button>
+        </div>
+      </div>
+      <div class="svgscroll"><svg id="spanSvg" viewBox="0 0 900 220"></svg></div>
     </div>
-    <!-- KHOI 2: bieu do mo men M(x) -->
+    <!-- KHOI 2: bieu do mo men M(x). Cuon chuot de zoom, keo de di chuyen
+         (chartjs-plugin-zoom) - huu ich khi nhieu nhip lam truc X qua day. -->
     <div class="block">
-      <h3>Biểu đồ mô men M(x) — âm trên, dương dưới</h3>
+      <div class="zoomrow">
+        <h3>Biểu đồ mô men M(x) — âm trên, dương dưới</h3>
+        <button class="zoomreset" onclick="resetChartZoom()" title="Về mặc định">⤢ Reset zoom</button>
+      </div>
       <canvas id="chartM" class="chartc"></canvas>
+      <div class="hint">Cuộn chuột (hoặc chụm 2 ngón) để phóng to/thu nhỏ; giữ và kéo để di chuyển.</div>
     </div>
     <!-- KHOI 3: bieu do luc cat V(x) -->
     <div class="block">
-      <h3>Biểu đồ lực cắt V(x)</h3>
+      <div class="zoomrow">
+        <h3>Biểu đồ lực cắt V(x)</h3>
+        <button class="zoomreset" onclick="resetChartZoom()" title="Về mặc định">⤢ Reset zoom</button>
+      </div>
       <canvas id="chartV" class="chartc"></canvas>
+      <div class="hint">Cuộn chuột (hoặc chụm 2 ngón) để phóng to/thu nhỏ; giữ và kéo để di chuyển.</div>
     </div>
     <!-- KHOI 4: bang tong hop M, R tai tung goi -->
     <div class="block">
@@ -391,11 +419,25 @@ function solveLinear(A,b){
 }
 /* ==========================================================================
    PHAN 4: VE SO DO NHIP (SVG) - goi, kich thuoc nhip, vung tai phan bo/tap trung
+   Khung SVG tu gian rong theo so nhip (moi nhip ~130px) thay vi nhoi het
+   vao 900px co dinh - nhieu nhip thi cuon ngang de xem, tranh chu chong chu.
    ========================================================================== */
+let svgZoom = 1, svgBaseW = 900, svgBaseH = 220;
+function zoomSvg(dir){
+  svgZoom = dir === 0 ? 1 : Math.min(3, Math.max(0.4, svgZoom + dir*0.25));
+  const svg = document.getElementById('spanSvg');
+  if(svg) svg.style.width = (svgBaseW*svgZoom)+'px';
+}
 function drawSpanDiagram(spans, supportX, rows){
   const svg = document.getElementById('spanSvg');
   const totalL = supportX[supportX.length-1];
-  const W=900,H=220, mL=40,mR=40, y0=110;
+  const mL=40,mR=40, y0=110;
+  // Vua khung khi it nhip (giong cu, khong cuon); chi gian rong hon khung
+  // khi nhieu nhip can toi thieu ~130px/nhip de nhan/chu khong de len nhau.
+  const perSpan = 130;
+  const containerW = document.querySelector('.beam-calc .svgscroll')?.clientWidth || 860;
+  const W = Math.max(containerW, mL+mR+spans.length*perSpan), H=220;
+  svgBaseW = W; svgBaseH = H;
   const scale=(W-mL-mR)/totalL;
   const X = x=> mL+x*scale;
   let parts=[];
@@ -445,6 +487,7 @@ function drawSpanDiagram(spans, supportX, rows){
     parts.push(`<text x="${px}" y="${y0-58}" text-anchor="middle" font-size="10.5" fill="#c1571f" font-weight="700">P=${r.P}kN</text>`);
   });
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.style.width = (W*svgZoom)+'px';
   svg.innerHTML = `<defs>
     <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
       <path d="M2 1L8 5L2 9" fill="none" stroke="#0f5c73" stroke-width="1.4"/></marker>
@@ -466,16 +509,24 @@ function runCalc(){
   const labels = res.allX.map(x=>x.toFixed(2));
   if(chartM) chartM.destroy();
   if(chartV) chartV.destroy();
+  // zoomPlugin: cuon chuot de phong to, giu+keo de di chuyen (chi truc X,
+  // vi truc can quan tam khi nhieu nhip la vi tri doc theo dam).
+  const zoomPlugin = {
+    pan:{enabled:true, mode:'x'},
+    zoom:{wheel:{enabled:true}, pinch:{enabled:true}, drag:{enabled:false}, mode:'x'}
+  };
   chartM = new Chart(document.getElementById('chartM'),{type:'line',
     data:{labels, datasets:[{data:res.allM.map(v=>-v), borderColor:'#0f5c73',
       backgroundColor:'rgba(15,92,115,0.12)', fill:true, pointRadius:0, borderWidth:1.5}]},
     options:{animation:false, scales:{y:{title:{display:true,text:'kN·m (đảo trục)'}},
-             x:{title:{display:true,text:'X (m)'}, ticks:{maxTicksLimit:14}}}, plugins:{legend:{display:false}}}});
+             x:{title:{display:true,text:'X (m)'}, ticks:{maxTicksLimit:14}}},
+             plugins:{legend:{display:false}, zoom:zoomPlugin}}});
   chartV = new Chart(document.getElementById('chartV'),{type:'line',
     data:{labels, datasets:[{data:res.allV, borderColor:'#c1571f',
       backgroundColor:'rgba(193,87,31,0.12)', fill:true, pointRadius:0, borderWidth:1.5}]},
     options:{animation:false, scales:{y:{title:{display:true,text:'kN'}},
-             x:{title:{display:true,text:'X (m)'}, ticks:{maxTicksLimit:14}}}, plugins:{legend:{display:false}}}});
+             x:{title:{display:true,text:'X (m)'}, ticks:{maxTicksLimit:14}}},
+             plugins:{legend:{display:false}, zoom:zoomPlugin}}});
   const sumEl = document.getElementById('sumTable');
   let head='<tr><th>Gối</th>'+res.supportX.map((_,i)=>`<th>${String.fromCharCode(65+i)}</th>`).join('')+'</tr>';
   let rowM='<tr><td>M (kN·m)</td>'+res.Mall.map(v=>`<td>${v.toFixed(1)}</td>`).join('')+'</tr>';
@@ -488,20 +539,40 @@ function runCalc(){
 // Quartz (micromorph) chen <script src> moi mot cach BAT DONG BO: su kien
 // "nav" co the ban ra va goi runCalc() TRUOC KHI Chart.js tai xong, gay loi
 // "Chart is not defined" o lan dieu huong dau tien vao trang.
+// Nap them chartjs-plugin-zoom (cuon chuot de zoom truc X) sau khi Chart.js
+// da san sang, roi dang ky bang Chart.register(). Ca 2 deu nap qua the
+// <script> tao dong (khong dung <script src> tinh) vi ly do da giai thich
+// o tren (SPA cua Quartz chen script bat dong bo).
 function loadChartJs(){
-  if (window.Chart) return Promise.resolve();
+  if (window.Chart && window.__csZoomReady) return Promise.resolve();
   if (window.__csChartPromise) return window.__csChartPromise;
-  window.__csChartPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Khong tai duoc Chart.js tu CDN'));
-    document.head.appendChild(s);
-  });
+  function loadScript(src){
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = () => res();
+      s.onerror = () => rej(new Error('Khong tai duoc '+src));
+      document.head.appendChild(s);
+    });
+  }
+  const chartReady = window.Chart ? Promise.resolve()
+    : loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js');
+  window.__csChartPromise = chartReady
+    .then(() => loadScript('https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js'))
+    .then(() => {
+      if(!window.__csZoomReady && window.Chart && window.ChartZoom){
+        Chart.register(window.ChartZoom);
+        window.__csZoomReady = true;
+      }
+    });
   return window.__csChartPromise;
 }
 function runCalcSafe(){
   loadChartJs().then(runCalc).catch((err)=>console.error(err));
+}
+function resetChartZoom(){
+  if(chartM && chartM.resetZoom) chartM.resetZoom();
+  if(chartV && chartV.resetZoom) chartV.resetZoom();
 }
 // khoi tao khi mo trang - chay lai moi lan dieu huong vi Quartz dung SPA
 function init(){
